@@ -62,11 +62,12 @@ for asset in target_weights:
 print("Rebalancing adjustments:")
 # Execute trades to rebalance the portfolio
 for asset, adjustment in adjustments.items():
+    last_price = get_last_price(f"{asset}/USDT")
     txt = "Nothings"
     if round(adjustment) > 0:
         # Buy the asset
         txt = "Buying"
-        client.create_order(symbol=asset, side='buy', type='market', amount=adjustment)
+        # client.create_order(symbol=asset, side='buy', type='market', amount=adjustment)
         symbol = f"{asset}/USDT"
         market_order = client.create_market_buy_order(symbol, abs(adjustment))
     elif round(adjustment) < 0:
@@ -75,6 +76,6 @@ for asset, adjustment in adjustments.items():
         symbol = f"{asset}/USDT"
         market_order = client.create_market_sell_order(symbol, abs(adjustment))
 
-    print(f"{txt} {abs(adjustment)} {asset} at market price.")
+    print(f"{txt} {abs(last_price/adjustment)} {asset} at market price.")
     
 
