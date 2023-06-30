@@ -1,88 +1,64 @@
+#  MarketData
 import os
-
-import ccxt
-
-# KuCoin API credentials
-api_key = os.getenv('API_KEY')
-api_secret = os.getenv('API_SECRET')
-api_passphrase = os.getenv('API_PASSPHRASE')
-
-SYMBOLS = ["SOL", "BNB"]
-
-target_weights = {
-    SYMBOLS[0]: 0.5,
-    SYMBOLS[1]: 0.5
-}
-
-## Create a KuCoin client
-client = ccxt.kucoin({
-    'apiKey': api_key,
-    'secret': api_secret,
-    'password': api_passphrase,
-    'enableRateLimit': True,
-})
-
-def get_last_price(symbol="BNB/USDT"):
-    # Fetch ticker for BNB/USDT trading pair
-    ticker = client.fetch_ticker(symbol)
-
-    # Get the current price
-    price = ticker['last']
-    return price
-
-# Retrieve account balances
-balances = client.fetch_balance()
-
-# Print balance for each currency
-obj =  balances['total']
-
-pair_a = get_last_price(f"{SYMBOLS[0]}/USDT")
-pair_b = get_last_price(f"{SYMBOLS[1]}/USDT")
-
-# Current portfolio values or quantities
-# current_values = {
-#    SYMBOLS[0]: pair_a*obj[SYMBOLS[0]],
-#    SYMBOLS[1]: pair_b*obj[SYMBOLS[1]]
-# }
-
-current_values = {
-   SYMBOLS[0]: round(pair_a*obj[SYMBOLS[0]]),
-   SYMBOLS[1]: round(pair_b*obj[SYMBOLS[1]])
-}
+import pandas as pd
+from binance.client import Client as BinanceClient
+from kucoin.client import Client as KucoinClient
+import requests
 
 
-# Total portfolio value
-total_value = sum(current_values.values())
-# Calculate target values based on weights
-target_values = {asset: total_value * weight for asset, weight in target_weights.items()}
+KUCOIN_API_KEY = os.getenv("KUCOIN_API_KEY")
+KUCOIN_API_SECRET = os.getenv("KUCOIN_API_SECRET")
+KUCOIN_API_PASSPHRASE = os.getenv("KUCOIN_API_PASSPHRASE")
 
-# Determine the required adjustments for rebalancing
-adjustments = {}
-for asset in target_weights:
-    target_value = target_values[asset]
-    current_value = current_values.get(asset, 0)
-    adjustment = target_value - current_value
-    adjustments[asset] = adjustment
+BINANCE_API_KEY = os.getenv("BINANCE_API_KEY")
+BINANCE_API_SECRET = os.getenv("BINANCE_API_SECRET")
+BINANCE_API_PASSPHRASE = os.getenv("BINANCE_API_PASSPHRASE")
 
-# Print the adjustments needed for rebalancing
-print("Rebalancing adjustments:")
-# Execute trades to rebalance the portfolio
-for asset, adjustment in adjustments.items():
-    last_price = get_last_price(f"{asset}/USDT")
-    pair_price = abs(adjustment)*last_price
-    txt = "Nothings"
-    if adjustment > 0:
-        # Buy the asset
-        txt = "Buying"
-        # client.create_order(symbol=asset, side='buy', type='market', amount=adjustment)
-        # symbol = f"{asset}/USDT"
-        # market_order = client.create_market_buy_order(symbol, abs(adjustment))
-    elif adjustment < 0:
-        # Sell the asset
-        txt = "Selling"
-        # symbol = f"{asset}/USDT"
-        # market_order = client.create_market_sell_order(symbol, abs(adjustment))
+SATANGPRO_API_KEY = os.getenv("SATANGPRO_API_KEY")
+SATANGPRO_API_SECRET = os.getenv("SATANGPRO_API_SECRET")
+SATANGPRO_API_PASSPHRASE = os.getenv("SATANGPRO_API_PASSPHRASE")
 
-    print(f"{txt} {abs(adjustment)}{asset} at market price {last_price} pair: {pair_price}.")
-    
 
+binance = BinanceClient(BINANCE_API_KEY, BINANCE_API_SECRET)
+kucoin = KucoinClient(KUCOIN_API_KEY, KUCOIN_API_SECRET, KUCOIN_API_PASSPHRASE)
+
+
+def get_kucoin_client():
+    pass
+
+def get_binance_client():
+    pass
+
+def get_satangpro_client():
+    pass
+
+def main():
+    # get market depth
+    # pair = ["BTC", "ETH", "SDT", "USD", "BNB","PAX", "SDC", "XRP", "SDS", "TRX", "NGN", "RUB", "TRY", "EUR", "ZAR", "KRW", "DRT"]
+    pair = ["BTC", "ETH", "SDT", "USD"]
+    symbols = binance.get_all_tickers()
+    for s in symbols:
+       try:
+            symbol = s["symbol"]
+            p = pair[pair.index(symbol[len(symbol)-3:])]
+            x = 3
+            if p == "SDT" or p == "USD":
+                x = 4
+
+            sym_pair = s["symbol"][len(symbol)-x:]
+            asset = s["symbol"][:len(symbol) - len(sym_pair)]
+            url = f"https://api.kucoin.com/api/v1/market/stats?symbol={asset}-{sym_pair}"
+            res = requests.request("GET", url)
+            obj = res.json()
+            if obj['data']['last'] != None:
+                print(f"{asset}-{sym_pair} ::: {float(s['price'])} ==> {float(obj['data']['last'])} ???? {float(s['price'])-float(obj['data']['last'])}")
+       except:
+           pass
+
+    # symbols = kucoin.get_ticker()
+    # for s in symbols:
+    #     # print(s["symbol"])
+    #     print(s)
+
+if __name__ == "__main__":
+    main()
